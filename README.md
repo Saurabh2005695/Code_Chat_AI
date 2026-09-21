@@ -127,6 +127,16 @@ npm run dev
 
 Frontend will be running at: `http://localhost:5173`
 
+> Keep both terminals running while using the local app. Closing the VS Code terminal, stopping Vite, or closing the computer makes `localhost:5173` unavailable. A PWA install creates a shortcut to this URL; it does not host the application independently.
+
+For a local app that keeps running after the development terminal is closed, use the production containers from the repository root:
+
+```bash
+docker compose up -d --build
+```
+
+Open `http://localhost` after the containers report healthy. To stop them, run `docker compose down`. This still requires Docker Desktop to be running.
+
 ---
 
 ## Mobile Installation Guide (PWA)
