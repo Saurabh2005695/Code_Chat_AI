@@ -57,12 +57,17 @@ async def process_repository_indexing(repo_id: str):
             
             all_chunks = []
             file_records = []
+            max_files = 500
+            max_total_chunks = 1500
             
             for root, dirs, files in os.walk(repo.storage_path):
                 # Filter out ignored directories
                 dirs[:] = [d for d in dirs if not is_ignored_path(d)]
                 
                 for file_name in files:
+                    if len(file_records) >= max_files:
+                        break
+
                     full_path = os.path.join(root, file_name)
                     rel_path = os.path.relpath(full_path, repo.storage_path).replace("\\", "/")
 
@@ -70,6 +75,10 @@ async def process_repository_indexing(repo_id: str):
                         continue
 
                     try:
+                        # Skip oversized files (> 500 KB)
+                        if os.path.getsize(full_path) > 500 * 1024:
+                            continue
+
                         with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
                             content = f.read()
 
@@ -82,8 +91,9 @@ async def process_repository_indexing(repo_id: str):
                         imports = ParserService.extract_imports(content, lang)
 
                         # Chunk file
-                        chunks = ParserService.chunk_file(full_path, content, rel_path)
-                        all_chunks.extend(chunks)
+                        if len(all_chunks) < max_total_chunks:
+                            chunks = ParserService.chunk_file(full_path, content, rel_path)
+                            all_chunks.extend(chunks)
 
                         file_records.append(RepoFile(
                             repo_id=repo.id,
@@ -96,6 +106,9 @@ async def process_repository_indexing(repo_id: str):
                         ))
                     except Exception:
                         continue
+
+            if not file_records:
+                raise Exception("No readable source code files found in this repository.")
 
             # Step 3: Insert file metadata
             indexing_progress[repo_id] = {"status": "indexing", "progress": 70, "step": "Storing metadata and files..."}
@@ -148,8 +161,8 @@ async def index_github_repo(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Extract repo name from URL
-    clean_url = req.github_url.strip().rstrip("/")
+    # Normalize repo URL & branch
+    clean_url, branch = GitService.normalize_github_url(req.github_url, req.branch or "main")
     repo_name = clean_url.split("/")[-1].replace(".git", "")
     if not repo_name:
         repo_name = "github-repo"
@@ -162,7 +175,7 @@ async def index_github_repo(
         source_type="github",
         source_url=clean_url,
         storage_path=storage_path,
-        default_branch=req.branch or "main",
+        default_branch=branch,
         status="pending"
     )
     db.add(repo)

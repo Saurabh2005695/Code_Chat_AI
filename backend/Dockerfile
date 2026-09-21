@@ -2,6 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Memory & performance settings for low-RAM cloud instances (Render 512MB)
+ENV MALLOC_ARENA_MAX=2 \
+    OMP_NUM_THREADS=1 \
+    PYTHONUNBUFFERED=1 \
+    TOKENIZERS_PARALLELISM=false
+
 # Install system dependencies for git and tree-sitter C compilation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
