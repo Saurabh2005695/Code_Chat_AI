@@ -6,7 +6,7 @@ Production-Grade RAG-Powered Developer Assistant with Tree-Sitter AST Parsing, H
 
 ## Live Demo
 
-- Public Web App & Mobile PWA: https://665fc11da060d4e9-152-59-25-130.serveousercontent.com
+- Public Web App & Mobile PWA: https://code-chat-ai-steel.vercel.app/
 - API Documentation: http://localhost:8000/docs
 
 ---
